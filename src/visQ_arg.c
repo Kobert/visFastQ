@@ -15,7 +15,7 @@
   void simQC_help()
  {
   printf("\n");
-  printf("version 0.0.2\n");   
+  printf("version 0.1.0\n");   
   printf("\n"); 
   printf("Important: In order to use the program, you must have gnuplot\n");
   printf("           (preferebly gnuplot-x11) installed!\n"); 
