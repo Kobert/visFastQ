@@ -31,7 +31,7 @@ Required arguments are:
 One of the following input files:
 	-s for specifying a file with shortreads (fastq format only).
 	-d for specifying a previously obtained data file.
-
+	
 Optional arguments:
 The output:
 	-o specify a prefix for the output names (can include a path).
