@@ -1,3 +1,3 @@
-visFastQ.o: visFastQ.c
-	gcc visFastQ.c ref_arg.c ref_primes.c ref_hash.c ref_slidingWindow.c ref_math.c ref_io.c visQ_arg.c -Wall -O3 -lm -o visFastQ
+visFastQ.o: src/visFastQ.c
+	gcc src/visFastQ.c src/ref_arg.c src/ref_hash.c src/ref_slidingWindow.c src/ref_math.c src/ref_io.c src/visQ_arg.c -Wall -O3 -lm -o visFastQ
 
