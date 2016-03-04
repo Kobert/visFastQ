@@ -21,6 +21,7 @@
 int main(int argc, char **argv)
 {
   unsigned int i;
+  int l;
   
  setting arg = simQC_initArgs(argc, argv);
  
@@ -133,6 +134,33 @@ for(i = 0; i < rv.assignedLength; i++)
 postProcessResults(arg, &rv);
 
 
+int diff = 0;
+if(arg.qFloor > 0)
+{
+diff = floor(log(rv.averageCoverage)/log(10) + 1) - ( floor(log(rv.averageQFloorCoverage)/log(10) + 1) + floor(log(arg.qFloor)/log(10) + 1) );
+}
+//printf("diff %d\n", diff);
+
+
+printf("\nAverage coverage per site:    ");
+
+	for(l = 0; l > diff; l--)
+	printf(" ");
+
+printf("%.1f\n", rv.averageCoverage);
+
+if(arg.qFloor > 0)
+{
+  printf("Average coverage with Q >= %d:  ", arg.qFloor);
+
+	for(l = 0; l < diff; l++)
+	printf(" ");
+
+printf("%.1f\n", rv.averageQFloorCoverage);
+}
+printf("\n");
+
+
 char *tempFileName;
 if(arg.outFilePrefix)
 {
@@ -158,12 +186,6 @@ if(!arg.outFilePrefix)
 
 
 
-printf("\nAverage coverage per site:   \t%.1f\n", rv.averageCoverage);
-if(arg.qFloor > 0)
-{
-printf("Average coverage with Q >= %d: \t%.1f\n", arg.qFloor, rv.averageQFloorCoverage);
-}
-printf("\n");
 
 plotQualityProfile(arg, rv.assignedLength, tempFileName);
 

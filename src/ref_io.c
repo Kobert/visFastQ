@@ -3,6 +3,7 @@
 #include <assert.h>
 #include <math.h>
 #include <string.h>
+#include <limits.h>
 
 #include "referenceAssembly.h"
 #include "ref_math.h"
@@ -112,8 +113,8 @@ void postProcessResults(setting arg, resultsVector *rv)
   result *r;
   unsigned int *e;
   
-  long long unsigned int sumPerSiteCoverage       = 0;
-  long long unsigned int sumQFloorPerSiteCoverage = 0;
+  double sumPerSiteCoverage       = 0;
+  double sumQFloorPerSiteCoverage = 0;
 
 	for(i = 0; i < rv->assignedLength; i++)
 	{
@@ -311,6 +312,8 @@ void postProcessResults(setting arg, resultsVector *rv)
  
 	   }
 	 
+	// assert(sumPerSiteCoverage < ULLONG_MAX - r->coverage);	// If this assertion fail (which it may),
+								// we have to code around it by changing the mean on the fly
 	 sumPerSiteCoverage += r->coverage;
 	 sumQFloorPerSiteCoverage += r->qFloorCoverage;
 	 
@@ -329,8 +332,8 @@ void postProcessResults(setting arg, resultsVector *rv)
 	 r->maxError = Q2P(max);
 	}
   
-    rv->averageCoverage       = (double)sumPerSiteCoverage/(double)rv->assignedLength;
-    rv->averageQFloorCoverage = (double)sumQFloorPerSiteCoverage/(double)rv->assignedLength;
+    rv->averageCoverage       = sumPerSiteCoverage/(double)rv->assignedLength;
+    rv->averageQFloorCoverage = sumQFloorPerSiteCoverage/(double)rv->assignedLength;
 }
 
 
