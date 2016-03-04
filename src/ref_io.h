@@ -5,7 +5,7 @@ void readToResult(resultsVector *rv, char * seq, unsigned int pos, unsigned int 
 
 void qualityToResult(resultsVector *rv, char * seq, unsigned int pos, unsigned int length);
 
-void postProcessResults(resultsVector *rv);
+void postProcessResults(setting arg, resultsVector *rv);
 
 void printCSV(resultsVector rv);
 

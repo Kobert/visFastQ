@@ -41,6 +41,7 @@ char* readsFile;
 
 char* dataInFile;
 char* outFilePrefix;
+int qFloor;
 
 unsigned int concealResults;
 
@@ -114,6 +115,7 @@ typedef struct
   unsigned int N;
   
   unsigned int coverage;
+  unsigned int qFloorCoverage;
   
   unsigned int * indivError;
 
@@ -144,6 +146,9 @@ typedef struct
 {
   result * results;
    unsigned int assignedLength;
+   
+   double averageCoverage;
+   double averageQFloorCoverage;
 }resultsVector;
 
 //int populateHashTableWithKey(setting * arg, unsigned int hashValue, unsigned int hashTableSize);

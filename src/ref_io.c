@@ -99,7 +99,7 @@ void qualityToResult(resultsVector *rv, char * seq, unsigned int pos, unsigned i
   
 }
 
-void postProcessResults(resultsVector *rv)
+void postProcessResults(setting arg, resultsVector *rv)
 {
   unsigned int i, j, k, sum, count;
   int median, uQuartile, lQuartile;
@@ -111,6 +111,9 @@ void postProcessResults(resultsVector *rv)
   char majorBase;
   result *r;
   unsigned int *e;
+  
+  long long unsigned int sumPerSiteCoverage       = 0;
+  long long unsigned int sumQFloorPerSiteCoverage = 0;
 
 	for(i = 0; i < rv->assignedLength; i++)
 	{
@@ -190,12 +193,19 @@ void postProcessResults(resultsVector *rv)
 	 
 	 fmedian = -1;
 	 
+	 r->qFloorCoverage = 0;
+	 
 	   for(j=0; j < r->indivErrorLength; j++)
 	   {
 	     e = r->indivError;//NOTE this is the number of times a score of j has been observed!
 	     sum   += j * e[j];
 	     fsum  += Q2P(j)  * e[j];
 	     count += e[j];
+//coverage above the quality threhold	     
+	     if(arg.qFloor > 0 && arg.qFloor == j+1)
+	     {
+	       r->qFloorCoverage = r->coverage - count;
+	     }
 //Median	     
 	     if(count >= (double)r->coverage/2 && median < 0)
 	     {
@@ -301,6 +311,9 @@ void postProcessResults(resultsVector *rv)
  
 	   }
 	 
+	 sumPerSiteCoverage += r->coverage;
+	 sumQFloorPerSiteCoverage += r->qFloorCoverage;
+	 
 	 r->meanPhError     = floor((double)sum/r->coverage + 0.5);
 	 r->medianPhError   = median;
 	 r->lowerPhQuartile = lQuartile;
@@ -316,6 +329,8 @@ void postProcessResults(resultsVector *rv)
 	 r->maxError = Q2P(max);
 	}
   
+    rv->averageCoverage       = (double)sumPerSiteCoverage/(double)rv->assignedLength;
+    rv->averageQFloorCoverage = (double)sumQFloorPerSiteCoverage/(double)rv->assignedLength;
 }
 
 
@@ -342,14 +357,14 @@ void printGnuplotDat(FILE* file, resultsVector rv)
 {
   unsigned int i, sum;
   result r;
-  fprintf(file, "#pos \tmin \tQ1 \tMedian \tQ3 \tmax \tMean \tCoverage \tA \tC \tG \tT\n");
+  fprintf(file, "#pos \tmin \tQ1 \tMedian \tQ3 \tmax \tMean \tCoverage \tqCoverage \tA \tC \tG \tT\n");
   	for(i = 0; i < rv.assignedLength; i++)
 	{
 	  r = rv.results[i];
 	  
 	  sum = r.A + r.C + r.G + r.T;
-	 fprintf(file, "%u \t%u \t%u \t%u \t%u \t%u \t%u \t%u \t%f \t%f \t%f \t%f\n"
-	               , i, r.minPhError, r.lowerPhQuartile, r.medianPhError, r.upperPhQuartile, r.maxPhError, r.meanPhError, r.coverage, r.A/(double)sum, r.C/(double)sum, r.G/(double)sum, r.T/(double)sum); 
+	 fprintf(file, "%u \t%u \t%u \t%u \t%u \t%u \t%u \t%u \t%u \t%f \t%f \t%f \t%f\n"
+	               , i, r.minPhError, r.lowerPhQuartile, r.medianPhError, r.upperPhQuartile, r.maxPhError, r.meanPhError, r.coverage, r.qFloorCoverage, r.A/(double)sum, r.C/(double)sum, r.G/(double)sum, r.T/(double)sum); 
 	  
 	}
 	fflush(file);
@@ -421,6 +436,9 @@ if(!arg.concealResults)
 {
 fprintf(gnuplotPipe, "set term wxt title 'Coverage of Sites'\n");
 fprintf(gnuplotPipe, "plot '%s' using 1:8 with lines title 'Coverage'\n", tempFileName);
+if(arg.qFloor >= 0){
+fprintf(gnuplotPipe, "replot '%s' using 1:9 with lines title 'Quality limited Coverage Q >= %u'\n", tempFileName, arg.qFloor);  
+}
 fflush(gnuplotPipe);
 }
 
@@ -433,7 +451,11 @@ sprintf(tempPNGName, "%s.coverageProfile", arg.outFilePrefix);
 fprintf(gnuplotPipe,"set title 'Coverage of Sites'\n");
 fprintf(gnuplotPipe,"set terminal png\n");
 fprintf(gnuplotPipe,"set output '%s.png'\n", tempPNGName);
+if(arg.qFloor < 0){
 fprintf(gnuplotPipe, "plot '%s' using 1:8 with lines title 'Coverage'\n", tempFileName);
+}else{
+fprintf(gnuplotPipe, "plot '%s' using 1:8 with lines title 'Coverage', '%s' using 1:9 with lines title 'Quality limited Coverage Q >= %u'\n", tempFileName, tempFileName, arg.qFloor);  
+}
 fflush(gnuplotPipe);
 
 printf("Coverage profile output as:\t \"%s.png\"\n",tempPNGName);
@@ -459,10 +481,10 @@ fprintf(gnuplotPipe,"set yrange[0:]\n");
 if(!arg.concealResults)
 {
 fprintf(gnuplotPipe, "set term wxt title 'Relative Base Frequencies'\n");
-fprintf(gnuplotPipe, "plot '%s' using 1:9 with lines title 'A'\n", tempFileName);
-fprintf(gnuplotPipe, "replot '%s' using 1:10 with lines title 'C'\n", tempFileName);
-fprintf(gnuplotPipe, "replot '%s' using 1:11 with lines title 'G'\n", tempFileName);
-fprintf(gnuplotPipe, "replot '%s' using 1:12 with lines title 'T'\n", tempFileName);
+fprintf(gnuplotPipe, "plot '%s' using 1:10 with lines title 'A'\n", tempFileName);
+fprintf(gnuplotPipe, "replot '%s' using 1:11 with lines title 'C'\n", tempFileName);
+fprintf(gnuplotPipe, "replot '%s' using 1:12 with lines title 'G'\n", tempFileName);
+fprintf(gnuplotPipe, "replot '%s' using 1:13 with lines title 'T'\n", tempFileName);
 fflush(gnuplotPipe);
 }
 
@@ -477,7 +499,7 @@ fprintf(gnuplotPipe,"set terminal png\n");
 //fprintf(gnuplotPipe,"set term pngcairo\n");  //NOTE this produces nicer results but is less portable...
 fprintf(gnuplotPipe,"set output '%s.png'\n", tempPNGName);
 
-fprintf(gnuplotPipe, "plot '%s' using 1:9 with lines title 'A', '%s' using 1:10 with lines title 'C',  '%s' using 1:11 with lines title 'G', '%s' using 1:12 with lines title 'T'\n", tempFileName, tempFileName, tempFileName, tempFileName);
+fprintf(gnuplotPipe, "plot '%s' using 1:10 with lines title 'A', '%s' using 1:11 with lines title 'C',  '%s' using 1:12 with lines title 'G', '%s' using 1:13 with lines title 'T'\n", tempFileName, tempFileName, tempFileName, tempFileName);
 fflush(gnuplotPipe);
 
 printf("Base frequencies output as:\t \"%s.png\"\n",tempPNGName);

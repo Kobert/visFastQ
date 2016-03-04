@@ -130,7 +130,7 @@ for(i = 0; i < rv.assignedLength; i++)
 
 
 
-postProcessResults(&rv);
+postProcessResults(arg, &rv);
 
 
 char *tempFileName;
@@ -157,6 +157,13 @@ if(!arg.outFilePrefix)
 }
 
 
+
+printf("\nAverage coverage per site:   \t%.1f\n", rv.averageCoverage);
+if(arg.qFloor > 0)
+{
+printf("Average coverage with Q >= %d: \t%.1f\n", arg.qFloor, rv.averageQFloorCoverage);
+}
+printf("\n");
 
 plotQualityProfile(arg, rv.assignedLength, tempFileName);
 
