@@ -21,7 +21,7 @@ Simply run the provided makefile...
 ----------------------------------------
 
 
-version 0.1.0
+version 0.1.1
 
 Important: In order to use the program, you must have gnuplot (preferebly gnuplot-x11) installed!
 
@@ -50,6 +50,13 @@ The output:
      
   -c Conceals output. Does not open a gnuplot plot window.  
      An alternative output must be set with -o instead.   
+     
+   -q Specify a lower bound for the quality scores (integer valued Phred score).  
+         Any base with a lower score will not count towards the coverage.  
+         This option only affects the coverage, all other plots remain the same!  
+         This option does not give new results when combined with -d.  
+         Instead, the contents present in the povided data file is plotted. 
+
      
   -h print this help message.  
 
