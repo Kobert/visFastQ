@@ -61,7 +61,8 @@ if(!pclose(gnuplotPipe))
 }
 
 
-  unsigned int bytesToRead = 10;
+//unsigned int bytesToRead = 10;
+  size_t bytesToRead = 10;
   char * seq;
   seq = (char*)malloc(bytesToRead );
   
@@ -212,7 +213,8 @@ if(!dataFile)
 char* dummy;
 
 unsigned int count=0;
-unsigned int b;
+//unsigned int b;
+size_t b;
   b = 10;
   dummy = (char*)calloc(b, sizeof(char));
 

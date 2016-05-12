@@ -5,6 +5,7 @@
 #include <stdlib.h>
 #include <assert.h>
 #include <string.h>
+#include <time.h>
 
 #include "referenceAssembly.h" 
 #include "ref_slidingWindow.h" 
@@ -105,7 +106,7 @@ else if(bitsPerBase == 2)
 	return 3;
 
 	default:
-	printf("Invalid character passed to map function c = %c. \n (Degenerate characters are not possible under this setting)\n",c);
+	printf("\nInvalid character passed to mapUnsafe function c = \"%c\". \n (Degenerate characters are not possible under this setting)\n",c);
 	assert(0);
 	}
 }
@@ -118,7 +119,7 @@ unsigned int map(char c)
     if(result >= 0)
     return (unsigned int)result;
   
-  printf("Invalid character passed to map function c = %c.\n",c);
+  printf("\nInvalid character passed to map function c = \"%c\".\n",c);
     
     if(bitsPerBase == 2)
     printf("(Note that degenerate characters are not possible under current setting)\n");
@@ -498,20 +499,61 @@ void reverseComplementSequence(char *complement, char* original)
   {
    unsigned int i;
    
-	for(i=0; i< strlen(original); i++)
+   unsigned int length = strlen(original);
+   char* temp;
+   temp = strdup(original);
+   
+   if(strlen(complement) < strlen(original))
+   {
+  printf("\nstrlen(complement) = %lu, strlen(seq) =%lu\n", (long unsigned)strlen(complement), (long unsigned)strlen(original));
+  assert( strlen(complement) >= strlen(original) ); 
+   }
+	for(i=0; i< length; i++)
 	{
-	  complement[i] = complementDNA(original [strlen(original) -1  -i]);	  
+	  complement[i] = complementDNA(temp[length -1  -i]);	  
 	}
+	
+	// Add null terminater to end of string
+	complement[i] = '\0';
+	
+	free(temp);
     
   }
   
+  
+void reverseSequence(char *complement, char* original)
+  {
+   unsigned int i;
+   
+   unsigned int length = strlen(original);
+   
+   //temp is introduced such that we have no problem if complement and original point to the same object.
+   char* temp;
+   temp = strdup(original);
+   
+   if(strlen(complement) < strlen(original))
+   {
+  printf("\nstrlen(complement) = %lu, strlen(seq) =%lu\n", (long unsigned)strlen(complement), (long unsigned)strlen(original));
+  assert( strlen(complement) >= strlen(original) ); 
+   }
+	for(i=0; i< length; i++)
+	{
+	  complement[i] = temp[length -1  -i];	  
+	}
+	
+	// Add null terminater to end of string
+	complement[i] = '\0';
+	
+	free(temp);
+    
+  }  
   
 //-------USED-FOR-Hash-Look-up--------------------------------------------------------
 
 
 
 //TODO can be faster by pushing only to needed window fragment, not alwasys from right!
-// However, dedicated 8 base (unsigned int) version makes this redundant
+// However, dedicated 8 base (unsigned int) version will make this redundant
 void makeWindow(unsigned int * window, char * seq, unsigned int pos)
 {
 unsigned int i;
@@ -521,7 +563,7 @@ unsigned int i;
 	assert(pos+i < strlen(seq));
 	pushToWindow(window, seq[pos+i]);
 	}
-//  printWindow(window);
+//	  printWindow(window);
 }
 //--------------------------------------------------------------------------------------
 
@@ -566,3 +608,584 @@ double evalComplementStatisticExpensive(char * reference, char * querry, unsigne
  
  return (double)hit/length;
 }
+
+
+//TODO if this function is worth it, there is lots of room for improvement. Quality wise and runtime wise.... 
+/*
+ void trimRegions(setting s, globalVariables *var, char* seq, unsigned int whichPos, unsigned int *start, unsigned int *end)
+{
+
+ unsigned int i;
+ 
+ unsigned int hit = 12;
+ unsigned int outOf = 16;
+
+ unsigned int count =0,
+	      lstart = 0,
+	      lend = strlen(seq),
+	      sum = 0; 
+  
+ //unsigned int last[16];
+	       unsigned int *last;
+	       last = (unsigned int *)malloc(outOf*sizeof(unsigned int));
+ 
+//Forward unaligned region
+for(i = 0; i<outOf; i++)
+ {
+   if(reMap(map(seq[i]))==reMap(map(var->referenceSequence[whichPos + i])))
+   {
+   last[i]=1;
+   sum++;     
+   }else{
+   last[i]=0;     
+   }
+ }
+
+ 
+ while(sum < hit && i < strlen(seq))
+ {
+   sum = sum - last[count];
+   
+  if(reMap(map(seq[i]))==reMap(map(var->referenceSequence[whichPos + i])))
+   {
+   last[count]=1;
+   sum++;     
+   }else{
+   last[count]=0;     
+   }
+  
+   count++;
+   count = count % outOf;
+   
+   i++;
+ }
+ 
+lstart = i - outOf;
+ 
+
+
+
+//Tailend unaligned region
+sum =0;
+
+for(i = 0; i<outOf; i++)
+ {
+   if(reMap(map(seq[strlen(seq) - i -1]))==reMap(map(var->referenceSequence[whichPos + strlen(seq) - i -1])))
+   {
+   last[i]=1;
+   sum++;     
+   }else{
+   last[i]=0;     
+   }
+ }
+
+ 
+ while(sum < hit && i < strlen(seq))
+ {
+   sum = sum - last[count];
+   
+   if(reMap(map(seq[strlen(seq) - i -1]))==reMap(map(var->referenceSequence[whichPos + strlen(seq) - i -1])))
+   {
+   last[count]=1;
+   sum++;     
+   }else{
+   last[count]=0;     
+   }
+  
+   count++;
+   count = count % outOf;
+   
+   i++;
+ }
+lend = strlen(seq) - i + outOf;
+ 
+
+*start = lstart;
+*end   = lend;
+
+ var->trimmed += lstart + (strlen(seq) - lend);
+ var->kept += lend - lstart;
+ 
+ //printf("%u %.20f, (%f + %f/%u)/%u\n",var->avgTrimmedOf,var->avgRatioTrimmed, var->avgRatioTrimmed * var->avgTrimmedOf, (double)(lstart + (strlen(seq) - lend)),(strlen(seq)), (var->avgTrimmedOf + 1));
+ var->avgRatioTrimmed = (double)(var->avgRatioTrimmed * var->avgTrimmedOf + (lstart + (strlen(seq) - lend))/(double)(strlen(seq))  )/(var->avgTrimmedOf + 1);
+ var->avgTrimmedOf += 1;
+ 
+ //printf("%llu %llu %.30f\n",var->trimmed, var->kept, var->avgRatioTrimmed);
+ 
+if(0 &&( *start > 0 || *end<strlen(seq)))
+{
+      printf("\n");
+      
+    for(i=0;i<*start;i++)
+  printf("%c",seq[i]);
+  
+  printf(" || ");
+  
+  for(i=*start;i<*end;i++)
+  printf("%c",seq[i]);
+  
+  printf(" || ");
+  
+  for(i=*end;i<strlen(seq);i++)
+  printf("%c",seq[i]);
+  
+  printf("\n");
+  
+      for(i=0;i<*start;i++)
+	  printf("%c",reMap(map(var->referenceSequence[whichPos + i])));
+      
+        printf(" || ");
+      
+  for(i=*start;i<*end;i++)
+  printf("%c",reMap(map(var->referenceSequence[whichPos + i])));
+  
+    printf(" || ");
+    
+      for(i=*end;i<strlen(seq);i++)
+	  printf("%c",reMap(map(var->referenceSequence[whichPos + i])));
+      
+    printf("\n");
+    printf("Which pos = %u, strlen = %u length of ref = %u.\n",whichPos, strlen(seq), strlen(var->referenceSequence));
+printf("0 - %u - %u - %u\n", *start, *end,  strlen(seq));
+}
+ free(last);
+}
+
+*/
+void trimRegions(setting s, globalVariables *var, char* seq, unsigned int whichPos, unsigned int *start, unsigned int *end)
+{
+
+ unsigned int i;
+ 
+ // TODO these numbers are somewhat arbitrary and only chosen to give results similar to bowties output...
+ //unsigned int hit = 14;
+ //unsigned int outOf = 16;
+unsigned int hit = 8;
+unsigned int outOf = 8;
+
+ unsigned int count =0,
+	      lstart = 0,
+	      lend = strlen(seq),
+	      sum = 0; 
+char c;
+  
+ //unsigned int last[16];
+	       unsigned int *last;
+	       last = (unsigned int *)malloc(outOf*sizeof(unsigned int));
+ 
+//Forward unaligned region
+for(i = 0; i<outOf; i++)
+ {
+   c = reMap(map(seq[i]));
+   if(c==reMap(map(var->referenceSequence[whichPos + i])))
+   {
+   last[i]=1;
+   sum++;     
+   }else{
+   last[i]=0;     
+   }
+ }
+
+ 
+ while(sum < hit && i < strlen(seq))
+ {
+   sum = sum - last[count];
+   
+   c = reMap(map(seq[i])); 
+  if(c==reMap(map(var->referenceSequence[whichPos + i])))
+   {
+   last[count]=1;
+   sum++;     
+   }else{
+   last[count]=0;     
+   }
+  
+   count++;
+   count = count % outOf;
+   
+   i++;
+ }
+ 
+lstart = i - outOf;
+ 
+
+
+
+//Tailend unaligned region
+sum =0;
+
+for(i = 0; i<outOf; i++)
+ {
+   c = reMap(map(seq[strlen(seq) - i -1]));
+   
+   if(c==reMap(map(var->referenceSequence[whichPos + strlen(seq) - i -1])))
+   {
+   last[i]=1;
+   sum++;     
+   }else{
+   last[i]=0;     
+   }
+ }
+
+ 
+ while(sum < hit && i < strlen(seq))
+ {
+   sum = sum - last[count];
+   c = reMap(map(seq[strlen(seq) - i -1]));
+   if(c==reMap(map(var->referenceSequence[whichPos + strlen(seq) - i -1])))
+   {
+   last[count]=1;
+   sum++;     
+   }else{
+   last[count]=0;     
+   }
+  
+   count++;
+   count = count % outOf;
+   
+   i++;
+ }
+lend = strlen(seq) - i + outOf;
+ 
+// TODO remove those two lines
+lstart += 0;
+lend -= 0;
+
+*start = lstart;
+*end   = lend;
+
+ var->trimmed += lstart + (strlen(seq) - lend);
+ var->kept += lend - lstart;
+ 
+ //printf("%u %.20f, (%f + %f/%u)/%u\n",var->avgTrimmedOf,var->avgRatioTrimmed, var->avgRatioTrimmed * var->avgTrimmedOf, (double)(lstart + (strlen(seq) - lend)),(strlen(seq)), (var->avgTrimmedOf + 1));
+ var->avgRatioTrimmed = (double)(var->avgRatioTrimmed * var->avgTrimmedOf + (lstart + (strlen(seq) - lend))/(double)(strlen(seq))  )/(var->avgTrimmedOf + 1);
+ var->avgTrimmedOf += 1;
+ 
+ //printf("%llu %llu %.30f\n",var->trimmed, var->kept, var->avgRatioTrimmed);
+ 
+if(0 &&( *start > 0 || *end<strlen(seq)))
+{
+      printf("\n");
+      
+    for(i=0;i<*start;i++)
+  printf("%c",seq[i]);
+  
+  printf(" || ");
+  
+  for(i=*start;i<*end;i++)
+  printf("%c",seq[i]);
+  
+  printf(" || ");
+  
+  for(i=*end;i<strlen(seq);i++)
+  printf("%c",seq[i]);
+  
+  printf("\n");
+  
+      for(i=0;i<*start;i++)
+	  printf("%c",reMap(map(var->referenceSequence[whichPos + i])));
+      
+        printf(" || ");
+      
+  for(i=*start;i<*end;i++)
+  printf("%c",reMap(map(var->referenceSequence[whichPos + i])));
+  
+    printf(" || ");
+    
+      for(i=*end;i<strlen(seq);i++)
+	  printf("%c",reMap(map(var->referenceSequence[whichPos + i])));
+      
+    printf("\n");
+    printf("Which pos = %u, strlen = %lu length of ref = %lu.\n",whichPos, (long unsigned)strlen(seq), (long unsigned)strlen(var->referenceSequence));
+printf("0 - %u - %u - %lu\n", *start, *end,  (long unsigned)strlen(seq));
+}
+ free(last);
+}
+
+
+
+//----------------------------------------------------------------------------------------
+//TODO can be refined alot. For example by hashing stuff for the reference in advance
+int matchesReference(char* reference, char* seq, unsigned int length)
+{
+  unsigned int i;
+  for(i = 0; i < length ; i++)
+  {
+    if(map(seq[i]) != map(reference[i]))
+      return 0;
+  }
+  
+  return 1;
+}
+
+
+
+void storeSequence(globalVariables *g, resultsVector* rv, char * seq, unsigned int pos, unsigned int length)
+{
+  
+
+  
+  if(g->numReads > g->allocatedNumReads -1)
+  {
+    g->allocatedNumReads = g->allocatedNumReads * 2;
+    
+    time_t timer;
+    char buffer[10];
+    struct tm* tm_info;
+
+    time(&timer);
+    tm_info = localtime(&timer);
+
+ //   strftime(buffer, 26, "%Y:%m:%d %H:%M:%S", tm_info);
+    strftime(buffer, 10, "%H:%M:%S", tm_info);
+    printf("[%s] %u Reads processed for mapping...\n", buffer, g->allocatedNumReads/2);
+    fflush(stdout);
+    
+    g->read = (Read*) realloc(g->read, g->allocatedNumReads * sizeof(Read));
+    
+  }
+
+ Read *r = &(g->read[g->numReads]);
+ r->pos = pos;
+ r->length = length;
+ 
+  if(matchesReference(&(g->referenceSequence[pos]), seq, length))
+  {
+  r->matchesReference = 1;  
+  rv->numReferenceMatches++;
+  }else{
+  r->seq = (char*) malloc( (length + 1) * sizeof(char) );
+  memcpy( r->seq, seq, length );
+  r->seq[length] = '\0';
+  }
+  
+  g->numReads++;
+}
+
+
+
+void freeMultiList(MultiList * list, unsigned int size)
+{
+  unsigned int i;
+ // printf("bef loop\n");
+  for(i = 0; i < size ; i++)
+  {
+    MultiList * l = &(list[i]);
+    if(l->allocatedNum > 0)
+    {
+      free(l->e);
+    }
+  }
+ // printf("bef last free\n");
+  free(list);
+ // printf("af last free\n");
+}
+
+void addToBucket(MultiList * buckets, unsigned int pos, unsigned int id)
+{
+  MultiList * l;
+  l = &buckets[pos];
+  if( l->allocatedNum == 0 )
+  {
+    l->allocatedNum = 128;
+    l->e = (unsigned int*) malloc( ( l->allocatedNum ) * sizeof(unsigned int) );
+  }else if(l->allocatedNum < l->num + 1 ){
+   l->allocatedNum = 2*l->allocatedNum;
+    l->e = (unsigned int*)realloc( l->e , ( l->allocatedNum ) * sizeof(unsigned int)  );
+  }
+  
+  l->e[l->num] = id;
+  
+  l->num++;
+  
+}
+
+
+void bucketsToList(MultiList * buckets, unsigned int numberOfBuckets, unsigned int * list)
+{
+  unsigned int i,j;
+  unsigned int count = 0;
+  for(i = 0; i < numberOfBuckets ; i++)
+  {
+    MultiList * l = &buckets[i];
+    
+    for(j = 0; j < l->num ; j++)
+    {
+      list[count] = l->e[j];
+      count++;
+    }
+  }
+  
+  
+}
+
+
+
+
+void sortReadsLeft(MultiList * list, setting s, globalVariables* g)
+{
+  unsigned int i;
+  unsigned int pos;
+  unsigned int max;
+ // printf("bef forloop in sort\n");
+  for(i = 0; i < g->numReads ; i++)
+  {
+ //pos = (g->read)->pos;
+  pos = (g->read[i]).pos;  
+  assert( pos < g->referenceSequenceLength );//If this is violated, make sure it happens only on pos = g->... . If it does, check the place where we restrict pos in the whichposfct.
+  
+//  max = strlen((g->read[i]).seq);
+    max = (g->read[i]).length;
+    assert(max > 0);
+  
+  MultiList * l = &list[pos];
+//  printf("bef if\n");
+  if( l->allocatedNum == 0 )
+  {
+ //   printf(" in if\n");
+    l->allocatedNum = 128;
+    l->e = (unsigned int*) malloc( ( l->allocatedNum ) * sizeof(unsigned int) );
+  }else if(l->allocatedNum < l->num + 1 ){
+//    printf("in else: l->allocatedNum %u, l->num %u \n", l->allocatedNum, l->num);
+    l->allocatedNum = 2*l->allocatedNum;
+    l->e = (unsigned int*)realloc( l->e , ( l->allocatedNum ) * sizeof(unsigned int)  );
+  }
+ // printf("af if \n"); 
+  l->e[l->num] = i;
+  l->num++;
+  
+  if(max > l->maxLength)
+  {
+    l->maxLength = max;
+  }
+  
+  }
+//  printf("af for in sort\n");
+}
+
+
+
+
+void sortReadsLengthIncr(MultiList * list, globalVariables * g)
+{
+    unsigned int i,j, length;
+    for(i = 0; i < g->referenceSequenceLength ; i++)
+  {
+
+    //List that we will read from
+    MultiList dup = list[i];
+    
+    //Buckets for bucketsorting the entries
+    MultiList * buckets;
+    buckets  = (MultiList*)calloc( dup.maxLength + 1 , sizeof(MultiList) );
+
+    for(j = 0; j <  dup.num; j++)
+    {
+//     length = strlen( (g->read[dup.e[j]]).seq );
+     length = (g->read[dup.e[j]]).length;
+     if(!(g->read[dup.e[j]]).matchesReference)
+     {
+       assert((length == strlen( (g->read[dup.e[j]]).seq ) ) && "Stored length does not match measured length!");
+     }
+    addToBucket(buckets, length, dup.e[j]);   
+    }
+    
+    
+    //List that we will manipulate
+    MultiList * l = &list[i];
+    bucketsToList(buckets, dup.maxLength + 1, l->e);
+    
+    freeMultiList(buckets, dup.maxLength + 1);
+  }
+  
+  
+  
+}
+
+void sortReadsLengthDecr(MultiList * list, globalVariables * g)
+{
+    unsigned int i,j, length;
+    for(i = 0; i < g->referenceSequenceLength ; i++)
+  {
+
+    //List that we will read from
+    MultiList dup = list[i];
+    
+    //Buckets for bucketsorting the entries
+    MultiList * buckets;
+    buckets  = (MultiList*)calloc( dup.maxLength + 1 , sizeof(MultiList) );
+
+    for(j = 0; j <  dup.num; j++)
+    {
+//     length = strlen( (g->read[dup.e[j]]).seq );
+     length = (g->read[dup.e[j]]).length;
+     
+     if(!(g->read[dup.e[j]]).matchesReference)
+     {
+       assert((length == strlen( (g->read[dup.e[j]]).seq ) ) && "Stored length does not match measured length!");
+     }
+     
+     addToBucket(buckets, dup.maxLength - length, dup.e[j]);   
+    }
+    
+    
+    //List that we will manipulate
+    MultiList * l = &list[i];
+    bucketsToList(buckets, dup.maxLength + 1, l->e);
+    
+    freeMultiList(buckets, dup.maxLength + 1);
+  }
+  
+  
+  
+}
+
+
+void checkIdentityWithReference(setting s, resultsVector *rv, globalVariables * g)
+{
+  
+  
+    unsigned int i;
+    unsigned int pos;
+ 
+  for(i = 0; i < g->numReads ; i++)
+  {
+  pos = (g->read[i]).pos;
+  char * seq = strdup((g->read[i]).seq);
+  
+  if( matchesReference(&(g->referenceSequence[pos]), seq, strlen(seq)) )
+  {
+    Read * r = &(g->read[i]);
+    
+    //Make sure this has not been set and freed before
+    assert(!r->matchesReference && "Variable assigned already!");
+    r->matchesReference = 1;
+    //   (g->read[i]).matchesReference = 1;
+   free(r->seq);
+   
+   //free((g->read[i]).seq);
+   
+   rv->numReferenceMatches++;
+  }else{
+ //  printf("\n");
+   //printf("%s\n", seq);
+   //printf("%.*s", strlen(seq), &g->referenceSequence[pos]);
+   //printf("\n");
+   //printf("\n"); 
+   //fflush(stdout);
+  }
+  free(seq);
+  }
+  
+  
+}
+
+
+void buildReferenceLists(setting s, resultsVector *rv, globalVariables * g)
+{
+  
+  
+}
+
+
+

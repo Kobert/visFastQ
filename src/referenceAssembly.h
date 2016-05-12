@@ -27,10 +27,10 @@
 //#define basesPerByte 4
 //#define bitsPerBase 2
 
-//#define _32BIT
-#ifdef _32BIT
+
+//#ifdef _32BIT
 FILE* fopen64(const char *filename, const char *type);
-#endif
+//#endif
 
 typedef struct
 {
@@ -43,13 +43,23 @@ char* dataInFile;
 char* outFilePrefix;
 int qFloor;
 
+unsigned int doCsvFile;
+unsigned int doGnuplotFile;
 unsigned int concealResults;
 
 unsigned int numPlots;
+//double pValue;
 
+unsigned int doTrim;
+unsigned int doExtendedTesting;
+
+unsigned int storeReads;
+
+unsigned int mapOnly;
 unsigned int primes;
 
 unsigned int windows;
+unsigned int minFracs;
 }setting;
 
 
@@ -84,6 +94,18 @@ int next;
 
 
 
+typedef struct
+{
+char * seq;
+unsigned int pos;
+
+unsigned int length;
+
+char matchesReference;
+char isSubstring;
+
+}Read;
+
 
 typedef struct
 {
@@ -98,10 +120,21 @@ typedef struct
  unsigned int itemsInTable;
  
  //hash table of POINTERS! for entries of reverse complemented string.
- hashEntry** complementHashTable;
+ //hashEntry** complementHashTable;
  //Table holding the actual entrier.
- hashEntry* complementEntryTable;
- unsigned int itemsInComplementTable;
+ //hashEntry* complementEntryTable;
+ //unsigned int itemsInComplementTable;
+ 
+ Read * read;
+ unsigned int numReads;
+ unsigned int allocatedNumReads;
+ 
+ 
+ long long unsigned trimmed;
+ long long unsigned kept;
+ 
+ double avgRatioTrimmed;
+ unsigned int avgTrimmedOf;
  
 }globalVariables;
 
@@ -139,6 +172,9 @@ typedef struct
   double minError;
   double maxError;
   
+  unsigned int numIndels;
+  
+
 
 }result;
 
@@ -149,9 +185,35 @@ typedef struct
    
    double averageCoverage;
    double averageQFloorCoverage;
+   
+   unsigned int indels;
+   
+   unsigned int numReferenceMatches;
 }resultsVector;
 
 //int populateHashTableWithKey(setting * arg, unsigned int hashValue, unsigned int hashTableSize);
+
+typedef struct
+{
+  unsigned int * e;
+  unsigned int num;  
+  unsigned int allocatedNum;
+  
+  int maxLength;
+}MultiList;
+
+typedef struct
+{
+char * seq;
+
+unsigned int * isEndFor;
+unsigned int * isStartFor;
+unsigned int * weight;
+
+unsigned int length;
+  
+}Haplotype;
+
 
 
 #endif

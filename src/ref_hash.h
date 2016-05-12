@@ -11,11 +11,11 @@ int populateHashTable(setting * arg, globalVariables* globalVar, char *seq, hash
 
 int populateHashTableWithKey(setting * arg, globalVariables* globalVar, char *seq,  hashEntry ***hashTable, hashEntry **entryTable, unsigned int *itemsInTable, unsigned int hashValue, unsigned int hashTableSize);
 
-int getNextNonEmptyLine(FILE * file, char ** read, unsigned int * bytes);
+int getNextNonEmptyLine(FILE * file, char ** read, size_t * bytes);
 
 int getNextRead(FILE * file, char ** read, unsigned int * bytes, unsigned int * firstPosition);
 
 int getNextQuality(FILE * file, char ** read, unsigned int * bytes, unsigned int * firstPosition);
 
-void hashMapReads(setting arg, globalVariables globalVar);
+void hashMapReads(setting arg, globalVariables *globalVar, resultsVector *rv);
 #endif
