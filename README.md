@@ -21,7 +21,7 @@ Simply run the provided makefile...
 ----------------------------------------
 
 
-version 0.1.1
+version 0.1.2
 
 Important: In order to use the program, you must have gnuplot (preferebly gnuplot-x11) installed!
 
