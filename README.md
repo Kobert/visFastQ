@@ -15,8 +15,7 @@ Output:
 Installation:  
   
 Simply run the provided makefile...  
-  
-(On a 32 bit system use the dedicated makefile_32 file.)  
+
       
 ----------------------------------------
 
